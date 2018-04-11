@@ -1,0 +1,150 @@
+1、 安装虚拟机 6 台，分别是 web1 web2 db1 db2 cache master
+2、 配置主机名称和ip地址，并且关闭 selinux 和 防火墙
+3、 配置 yum 安装源
+4、 把 saltstack 的安装文件整合进安装源里面去
+       createrepo .
+
+5、 安装 salt
+    master 上安装  salt-master (1台)
+    yum install -y salt-master
+
+    被控主机上安装 salt-minion (5台)
+    yum install -y salt-minion
+
+6、配置启动 master
+      配置文件  /etc/salt/master
+      systemctl enable salt-master
+      systemctl start salt-master
+      端口 4505,4506 被监听
+
+      配置启动 minion
+      配置文件 /etc/salt/minion
+      16: master: 声明 master 的地址（可以写域名和ip）
+      103: id: 本机的名称
+
+      systemctl enable salt-minion
+      systemctl start salt-minion      
+
+7、 建立信任关系
+      [root@master ~]# salt-key -L  显示主机key的情况
+      -L  显示主机key的情况
+      -a  添加一个信任主机
+      -d  删除一个主机
+      -A  添加所有主机到信任主机
+      -D 删除所有主机
+      -y  自动输入 y
+
+8、 salt 配置管理
+    检查所有客户端是否启动
+    [root@master ~]# salt '*' test.ping 
+
+    远程执行任意指令
+    [root@master ~]# salt '*' cmd.run 'uptime'
+
+    正则表达式匹配主机
+    [root@master ~]# salt -E 'web[12]' test.ping
+
+    列表匹配主机
+    [root@master ~]# salt -L 'db1,web2' test.ping
+
+    分组匹配
+    在配置文件 /etc/salt/master 里面添加分组
+nodegroups:
+   webcluster: 'L@web1,web2'
+   dbcluster:   'E@db\d'
+
+   调用分组信息执行指令
+   [root@master ~]# salt -N webcluster test.ping
+
+   使用 CIDR 匹配主机
+   [root@master ~]# salt -S '192.168.4.0/28' test.ping
+
+   文件分发：
+   创建文件夹 mkdir -p /srv/salt/files
+   拷贝要分发的文件到这个文件夹内
+   分发文件指令
+   [root@master ~]# salt '*' cp.get_file 原地址  目的地址
+   [root@master ~]# salt '*' cp.get_file salt://files/resolv.conf /etc/resolv.conf
+
+   本地拷贝文件
+   salt 'cache' file.copy '/etc/passwd' '/tmp/abc'
+   如果是文件夹需要添加  recurse=true
+
+   列所有模块
+   salt 'cache' sys.list_modules
+  
+   列模块里面存在的方法
+   salt 'cache' sys.list_functions user
+
+   查看 模块.方法的 使用方法
+   salt 'cache' sys.doc user.add
+
+   添加用户
+   salt -E 'web\d' user.add zhang3 1001 10
+
+   grains 模块
+   查看 minion grains 信息
+   salt '*' grains.items
+
+   利用grains信息匹配机器集合，按系统查找执行
+   salt -G 'os:RedHat' test.ping
+
+   修改 minion 配置文件，规划 grains 角色
+   文件 /etc/salt/minion  第 120 行
+grains:
+  roles:
+    - webserver
+    - cache
+
+   重启minion 或手动刷新后，可使用 grains 配置信息
+   重启minion 
+   systemctl restart salt-minion
+   刷新 grains 信息
+   salt '*' saltutil.sync_grains
+
+   利用配置的角色匹配机器
+   salt -G 'roles:webserver' test.ping
+
+   pillar 模块
+   配置文件 /etc/salt/master
+pillar_roots:
+  base:
+    - /srv/pillar
+
+   创建 pillar 工作目录
+   mkdir /srv/pillar
+
+   pillar 默认的入口文件是 top.sls ，文件夹的默认文件 init.sls
+   创建 top.sls 文件，定义属性标签
+base:
+  'L@web1,web2,cache':
+    - data
+    - users
+
+   data 是引用的文件，创建 data.sls
+appname: website
+flow:
+  maxconn: 3000
+  maxmem: 6G
+
+   users 是引用的目录，目录的默认配置文件是 init.sls
+   创建文件夹 users
+   编辑文件夹下 init.sls 配置文件
+users:
+  zhang3: 1001
+  li4: 1002
+
+   同步 pillar 数据到 minion
+   salt '*' saltutil.refresh_pillar
+
+   查看 pillar 数据
+   salt '*' pillar.items
+
+   利用 pillar 数据提取机器集合执行指令
+   salt -I 'appname:website' test.ping
+
+   利用 pillar 数据构建的集合批量添加用户
+   salt -I "users:zhang3" user.add zhang3 1001 10
+
+   利用 pillar 数据构建的集合批量删除用户   
+   salt -I "users:zhang3" user.delete zhang3 remove=True

@@ -1,0 +1,106 @@
+linux集群  5天
+集群      LVS   HAproxy    keepalived  RHCS
+                  LB                         HA          iptables
+
+存储     iscsi    fastdfs
+
++++++++++++++++++++++++
+day02   使用LVS软件部署 负载均衡集群
+
+NAT  网络地址转换模式   -m
+DR     直连路由模式   -g
+TUN  隧道模式  -i
+
+
+RR  
+WRR
+lc
+wlc
+
+配置LVS/NAT模式的LB集群
+                                  网站服务（10  20）
+                                    
+1 准备网站服务器
+
+2 让分发器能够收发来自不同网络的包（ 开启分发器的内核路由
+
+转发功能）
+[root@LVS253 ~]# sed -n '7p' /etc/sysctl.conf 
+net.ipv4.ip_forward = 1
+[root@LVS253 ~]# sysctl  -p
+net.ipv4.ip_forward = 1
+
+3 设置主机的网关（客户端2.1  和  网站服务器 都要配置）
+  158  route -n
+  159  route  add default  gw 192.168.4.253
+  162  echo "GATEWAY=192.168.2.253" >> 
+
+/etc/sysconfig/network-scripts/ifcfg-eth1 
+  164  route  del default  gw 192.168.2.253
+
+
+配置分发器 253
+1 装包
+2 添加虚拟服务
+#ipvsadm   -A  -t  192.168.2.253:80  -s  rr
+3 添加realserver
+#ipvsadm  -a   -t  192.168.2.253:80  -r  192.168.4.10:80  
+
+-m
+#ipvsadm  -a   -t  192.168.2.253:80  -r  192.168.4.10:80  
+
+-m
+4 查看
+#ipvsadm  -Ln
+#ipvsadm  -Ln  --stats
+5 保存配置
+# /etc/init.d/ipvsadm save
+
+
+
+6 在客户端2.1 测试 配置
+http://192.168.2.253/test.html
+         
+
+管理命令的使用
+-d 删除虚拟服务里的realserver   
+-E 修改虚拟服务的调度算法
+-e 修改realserver的权重值  -w
+-D 删除虚拟服务
+-C 清除虚拟服务的配置
+
+++++++++++++++++++++++++++++++++
+配置LVS/DR模式的LB集群
+                                  网站服务（10  20）
+
+*rip地址要和vip在同一网段
+* 广播包 在同一网段内的主机全能收到
+* 只接受被访问主机回复的包
+
+让realserver  拥有VIP地址
+# ifconfig  lo:1 192.168.4.252/32
+# ifconfig  lo:1
+# ifconfig  lo
+
+让realserver不响应客户端访问分发器的arp广播包,让realserver网络接口 帮助兄弟接口收发ip包.
+#cd  /proc/sys/net/ipv4/conf/
+#ls
+#echo 1 > /proc/sys/net/ipv4/conf/lo/arp_ignore
+#echo 2 > /proc/sys/net/ipv4/conf/lo/arp_announce
+#echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+#echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+
+给分发器绑定vip地址并添加虚拟服务和设置realserver
+  226  ifconfig  eth0:1 192.168.4.252/32
+  227  ifconfig  eth0:1
+  228  ifconfig  eth0
+  229  ipvsadm   -A  -t  192.168.4.252:80  -s  rr
+  230  ipvsadm   -a  -t  192.168.4.252:80  -r 192.168.4.10:80 -g
+  231  ipvsadm   -a  -t  192.168.4.252:80  -r 192.168.4.20:80
+  232  ipvsadm -Ln
+  233  /etc/init.d/ipvsadm  save
+  234  cat /etc/sysconfig/ipvsadm
+  235  ipvsadm -Ln --stats
+
+客户端访问192.168.4.1
+http://192.168.4.252/test.html
