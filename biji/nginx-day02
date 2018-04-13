@@ -1,0 +1,41 @@
+
+nginx--day02
+
+=============================================================
+【lnmp搭建常见问题】
+
+1. 出现下载页面【没有动静分离】
+2.An error occurred(日志Connection refused) 
+3.空白页面（可能是php脚本错误---> 每句后面都要加分号 ；）
+4.File not found （没有页面文件）
+
+# tailf /usr/local/nginx/logs/error.log    // nginx 的日志文件
+
+# tailf /var/log/php-fpm/www-error.log 	//php-fpm 日志文件
+
+==============================================================
+
+【搭建lnmp】
+
+【地址重写】    //nginx 支持正则
+
+1.文件被删除，移动
+2. 
+3.路径比较深
+
+
+修改nginx配置文件 /usr/local/nginx/conf/nginx.conf
+重启服务 	/usr/local/nginx/sbin/nginx -s reload
+
+
+
+
+
+
+
+
+
+
+
+
+

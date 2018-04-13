@@ -1,0 +1,67 @@
+
+lab smtp-nullclient setup
+空邮件服务 提供拒绝报错！！！
+
+local_transport = error:local delivery disabled
+
+
+
+
+
+samba 服务
+
+//server0.example.com/devops  /mnt/dev  cifs  username=kenji,password=atenorth,multiuser,sec=ntlmssp,_netdev 0 0
+
+
+nfs服务
+
+lab nfskrb5 setup
+
+vim /etc/fstab
+server0.example.com:/protected /mnt/nfssecure nfs sec=krb5p,_netdev 0 0 
+
+
+脚本2
+#/bin/bash
+
+if [ $# -eq 0 ];then
+        echo ' Usage: /root/batchusers <userfile> '
+        exit 2
+elif [ ! -f $1 ];then
+        echo "Input file not found"
+        exit 3
+else
+        for i in `cat $1`
+        do
+            useradd -s /bin/false $i  &> /dev/null
+        done
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

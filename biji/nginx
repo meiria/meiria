@@ -1,0 +1,144 @@
+
+【nginx 服务搭建】
+
+##首先安装所需的依赖包
+	yum -y install gcc openssl-devel pcre-devel  
+
+##添加nginx账户
+	useradd -s /sbin/nologin nginx	
+
+##解压压缩包并且编译安装
+	tar -zvxf  nginx-1.10.3.tar.gz 
+	cd nginx-1.10.3
+
+	  ./configure \
+	>--prefix=/usr/local/nginx \
+	>--user=nginx \
+	>--group=nginx \
+	>--with-http_ssl_module
+	
+	make && make install 
+##起服务
+	/usr/local/nginx/sbin/nginx   
+##	/usr/local/nginx/sbin/nginx  -s stop ##停止服务  reload 重启服务
+	ln -s /usr/local/sbin/nginx /sbin/    ##作软连接（快捷）
+
+	netstat -ntlp | grep nginx    #查看nginx的80端口是否成功开启，若被http占则 sys stop 
+	firefox http://ip
+
+
+【升级】
+	tar -zvxf 升级版
+	cd   nginx-1.12.2
+	./configure  \               #编译
+	>--prefix=/usr/local/nginx \
+	>--user=nginx \
+	>--group=nginx \
+	>--with-http_ssl_module
+	make   #######################千万别 make install 不然就会替换旧版 而不是升级
+	mv /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx.bak  #备份旧版本
+	cp objs/nginx /usr/local/nginx/sbin/     #拷贝新版本
+	make upgrade  #升级
+	/usr/local/nginx/sbin/nginx -t
+
+	/usr/loal/nginx/sbin/nginx  -V    ##查看版本
+	firefox http://ip
+
+【身份认证】  
+#修改配置文件
+	vim /usr/local/sbin/nginx/conf/nginx.conf  // 文件后一定要加分号！！！！
+
+	server { 
+		listen 80;
+		server_name  localhost;
+		auth_basic "Input Passwd:";	//认证提示符
+		auth_basic_user_file "/usr/local/nginx/pass";  //认证密码文件路径
+
+	location / {
+		root html;
+		index index.html index.htm;
+		}
+	}
+##生成密码文件，创建用户和密码
+	yum -y install httpd-tools
+	htpasswd -c /usr/local/nginx/pass  lzy   //创建密码文件（路径要与配置文件中的一致）
+	htpasswd /usr/local/nginx/pass   hahaha  // 追加用户，不需要 -c
+	cat /usr/local/nginx/pass
+	
+	nginx -s reload   //重启服务
+	firefox http://ip
+	
+【基于域名的虚拟主机】
+	举例：2个
+	//修改配置文件 /usr/loacl/nginx/conf/nginx.conf 
+	 新添加一个 server { 
+				listen  80;
+				server_name www.lzy.com;   ---> 最主要是server_name www.lzy.com (两个不同的域名)
+			location / { 
+				root www;   //自己新定义的文件加 在/usr/local/nginx/ 
+				index index.html index.htm;
+			}
+		} 
+	mkdir /usr/local/nginx/www    //与配置文件中root的路径要一致
+	echo "hahhsdjka  www.lzy.com" > /usr/local/nginx/www/index.html
+##重启服务
+	nginx -s reload
+##客户机测试
+	echo "ip  域名 域名" >> /etc/hosts
+	firefox http://不同域名测试
+
+【SSL虚拟主机】-------->源码安装时，一定要有  --with-http_ssl_module 参数，启用加密模块
+	1.站点通过https 进行访问
+	2.通过私钥，证书对站点所有数据进行加密
+##生成私钥与证书
+	cd /usr/local/nginx/conf
+	openssl genrsa > cert.key  //生成私钥
+	openssl  req -new -x509 -key cert.key > cert.pem      //生成证书
+
+	vim /usr/local/nginx/conf/nginx.conf 
+
+	server {
+		listen 443 ssl;
+		server_name  www.bb.com;
+		
+        ssl_certificate      cert.pem;
+        ssl_certificate_key  cert.key;
+        ssl_session_cache    shared:SSL:1m;
+        ssl_session_timeout  5m;
+        ssl_ciphers  HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers  on;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+##客户端验证
+	vim /etc/hosts
+	...
+	
+	firefox https://域名
+	
+	
+
+
+	
+program  程序【硬盘】 QQ.exe
+process  进程【内存】
+thread   线程
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

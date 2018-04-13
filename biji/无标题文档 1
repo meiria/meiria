@@ -1,0 +1,43 @@
+  
+
+
+
+
+
+
+
+
+
+
+
+--with-http_ssl_module
+--with-http_stub_status_module
+ --with-stream 
+
+
+
+服务被域 my133t.org 访问，这个域的系统在 172.34.0.0/255.255.255.0 子网中，并且这些子网中的系统都属于域 my133t.org 
+
+lab smtp-nullclient setup
+
+local_transport = error:local delivery disabled
+
+man teamd.conf  查找==> {"runner":{"name":"activebackup"}}
+
+samba
+
+[common]
+ hosts allow = 172.25.0.0/24
+
+
+/etc/fstab
+ //server0.example.com/devops /mnt/dev cifs username=kenji,pasaword=atenorth,_netdev 0 0
+
+
+
+
+
+
+
+
+
